@@ -1383,12 +1383,7 @@ namespace Celeste {
                 }
 
                 public float Width(TextMenu.Item item) {
-                    if(item.Container != null) {
-                        return item.Container.Width / ratio;
-                    } else {
-                        Logger.Log(LogLevel.Info, "MayMay", "no container!");
-                        return 100;
-                    }
+                    return item.Container.Width / ratio;
                 }
             }
 
@@ -1421,6 +1416,10 @@ namespace Celeste {
             private bool Typing = false;
             private readonly IRenderStrategy renderStrategy;
 
+            public Dictionary<char, Action> InputCharActions = new();
+
+            public Dictionary<Keys, Action> GeneralKeysActions = new();
+
 
             public TextBox(IRenderStrategy renderStrategy) {
                 this.renderStrategy = renderStrategy;
@@ -1448,7 +1447,7 @@ namespace Celeste {
                 StartTyping();
             }
 
-            private void StartTyping() {
+            public void StartTyping() {
                 // TODO: fix Audio.Play not working
                 Audio.Play(SFX.ui_main_button_toggle_on);
                 Container.Focused = false;
@@ -1456,7 +1455,7 @@ namespace Celeste {
                 TextInput.OnInput += OnTextInput;
             }
 
-            private void StopTyping() {
+            public void StopTyping() {
                 // TODO: fix Audio.Play not working;
                 Audio.Play(SFX.ui_main_button_toggle_off);
                 Typing = false;
@@ -1486,6 +1485,13 @@ namespace Celeste {
                 if (!Typing) {
                     return;
                 }
+
+                Logger.Log(LogLevel.Info, "MayMay", $"input was {c}");
+                if (InputCharActions.TryGetValue(c, out Action action)) {
+                    action();
+                    return;
+                }
+
                 switch (c) {
                     // backspace
                     case (char) 8: {
@@ -1518,8 +1524,13 @@ namespace Celeste {
                             Audio.Play(SFX.ui_main_rename_entry_backspace);
                         }
                     }
+                } else {
+                    foreach (KeyValuePair<Keys, Action> pair in GeneralKeysActions) {
+                        if (MInput.Keyboard.Pressed(pair.Key)) {
+                            pair.Value();
+                        }
+                    }
                 }
-
 
                 base.Update();
             }
@@ -1558,15 +1569,23 @@ namespace Celeste {
                 item.Added();
             }
 
+            public override void Update() {
+                base.Update();
+                item.Update();
+            }
+
             public override bool AlwaysRender => true;
 
             public override float Height() {
-                return 0;
+                if (Container != null) {
+                    return Container.ItemSpacing * -1;
+                } else {
+                    return 0;
+                }
             }
 
 
             public override void Render(Vector2 position, bool highlighted) {
-                Logger.Log(LogLevel.Info, "MayMay", $"item.Width: {item.Width}, item.LeftWidth(): {item.LeftWidth()}");
                 for (int i = 1; i <= BorderThickness; i++) {
                     Draw.HollowRect(position.X - i, AbsoluteY - i, item.Width + (2 * i), item.Height() + (2 * i), BoxBorderColor * Container.Alpha);
                 }

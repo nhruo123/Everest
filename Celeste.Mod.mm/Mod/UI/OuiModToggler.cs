@@ -241,18 +241,28 @@ namespace Celeste.Mod.UI {
                     }));
 
                     TextMenuExt.TextBox textBox = new TextMenuExt.TextBox(new TextMenuExt.TextBox.RelativeHightRenderStrategy(1));
-                    var button =  new TextMenu.Button("Search");
-                    var modal = new TextMenuExt.Modal(100,textBox);
+                    var button = new TextMenu.Button("Search");
+                    var modal = new TextMenuExt.Modal(100, textBox);
                     menu.Add(button);
                     menu.Add(modal);
-                    button.OnPressed += () => {
-                        modal.Visible = !modal.Visible;
+
+                    Action onEnter = () => {
+                        Logger.Log(LogLevel.Info, "MayMay", "on Enter was called");
                     };
-                    // textBox.OnTextChange += (string text) => {
-                    //     updateHighlightedMods();
-                    //     menu.RecalculateSize();
-                    //     menu.Y = menu.ScrollTargetY;
-                    // };
+
+                    textBox.InputCharActions['\n'] = onEnter;
+                    textBox.InputCharActions['\r'] = onEnter;
+                    
+                    textBox.GeneralKeysActions[Microsoft.Xna.Framework.Input.Keys.Escape] = () => {
+                        Logger.Log(LogLevel.Info, "MayMay", "on Escape was called");
+                        modal.Visible = false;
+                        textBox.StopTyping();
+                    };
+
+                    button.OnPressed += () => {
+                        modal.Visible = true;
+                        textBox.StartTyping();
+                    };
 
                     // reset the mods list
                     allMods = new List<string>();
