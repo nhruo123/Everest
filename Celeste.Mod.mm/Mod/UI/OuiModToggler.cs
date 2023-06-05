@@ -256,9 +256,9 @@ namespace Celeste.Mod.UI {
                         string searchTarget = textBox.Text.ToLower();
 
                         foreach (TextMenu.Item item in menu.GetItems()) {
-                            if (item.GetType() == typeof(TextMenu.OnOff) &&
-                                    modToggles.ContainsKey(((TextMenu.OnOff) item).Label) &&
-                                    ((TextMenu.OnOff) item).Label.ToLower().Contains(searchTarget)) {
+                            if (item is TextMenu.OnOff off &&
+                                    modToggles.ContainsKey(off.Label) &&
+                                    off.Label.ToLower().Contains(searchTarget)) {
                                 if (targetTextMenuItem == null) {
                                     targetSelectionIndex = index;
                                     targetTextMenuItem = (patch_TextMenu.patch_Option<bool>) (object) item;
