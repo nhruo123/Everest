@@ -1358,37 +1358,6 @@ namespace Celeste {
 
 
         public class TextBox : TextMenu.Item, IItemExt {
-
-            public interface IRenderStrategy {
-                public float Width(TextMenu.Item item);
-            }
-
-            public class StaticHightRenderStrategy : IRenderStrategy {
-                private float width;
-
-                public StaticHightRenderStrategy(float width) {
-                    this.width = width;
-                }
-
-                public float Width(TextMenu.Item item) {
-                    return width;
-                }
-            }
-
-            public class RelativeHightRenderStrategy : IRenderStrategy {
-                private float ratio;
-
-                public RelativeHightRenderStrategy(float ratio) {
-                    this.ratio = ratio;
-                }
-
-                public float Width(TextMenu.Item item) {
-                    return item.Container.Width / ratio;
-                }
-            }
-
-
-
             public delegate void OnTextChangeHandler(string text);
             public event OnTextChangeHandler OnTextChange;
 
@@ -1410,19 +1379,19 @@ namespace Celeste {
             public Color SearchBarColor { get; set; } = Color.DarkSlateGray;
             public Vector2 TextPadding { get; set; }
             public Vector2 TextScale { get; set; } = Vector2.One * 0.75f;
+            public float WidthScale = 1;
             private readonly float CharHight;
             private readonly float CharWidth;
             private readonly float BoxHight;
             private bool Typing = false;
-            private readonly IRenderStrategy renderStrategy;
+
 
             public Dictionary<char, Action> InputCharActions = new();
 
             public Dictionary<Keys, Action> GeneralKeysActions = new();
 
 
-            public TextBox(IRenderStrategy renderStrategy) {
-                this.renderStrategy = renderStrategy;
+            public TextBox() {
                 CharHight = ActiveFont.LineHeight;
                 CharWidth = ActiveFont.Measure(' ').X;
                 BoxHight = CharHight;
@@ -1435,7 +1404,10 @@ namespace Celeste {
             }
 
             public override float LeftWidth() {
-                return renderStrategy.Width(this);
+                if (Container != null) {
+                    return Container.Width / WidthScale;
+                }
+                return 0;
             }
 
 
@@ -1445,6 +1417,10 @@ namespace Celeste {
 
             public override void ConfirmPressed() {
                 StartTyping();
+            }
+
+            public void Clear() {
+                Text = "";
             }
 
             public void StartTyping() {
@@ -1486,7 +1462,6 @@ namespace Celeste {
                     return;
                 }
 
-                Logger.Log(LogLevel.Info, "MayMay", $"input was {c}");
                 if (InputCharActions.TryGetValue(c, out Action action)) {
                     action();
                     return;
@@ -1517,18 +1492,19 @@ namespace Celeste {
             }
 
             public override void Update() {
-                if (!Typing) {
-                    if (MInput.Keyboard.Pressed(Keys.Delete)) {
-                        if (Text.Length > 0) {
-                            Text = "";
-                            Audio.Play(SFX.ui_main_rename_entry_backspace);
-                        }
-                    }
-                } else {
+                if (Typing) {
+
                     foreach (KeyValuePair<Keys, Action> pair in GeneralKeysActions) {
                         if (MInput.Keyboard.Pressed(pair.Key)) {
                             pair.Value();
                         }
+                    }
+                }
+
+                if (MInput.Keyboard.Pressed(Keys.Delete)) {
+                    if (Text.Length > 0) {
+                        Clear();
+                        Audio.Play(SFX.ui_main_rename_entry_backspace);
                     }
                 }
 

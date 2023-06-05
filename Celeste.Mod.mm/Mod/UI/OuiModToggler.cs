@@ -240,24 +240,57 @@ namespace Celeste.Mod.UI {
                         onBackPressed(Overworld);
                     }));
 
-                    TextMenuExt.TextBox textBox = new TextMenuExt.TextBox(new TextMenuExt.TextBox.RelativeHightRenderStrategy(1));
-                    var button = new TextMenu.Button("Search");
-                    var modal = new TextMenuExt.Modal(100, textBox);
+                    TextMenuExt.TextBox textBox = new();
+                    TextMenu.Button button = new("Search");
+                    TextMenuExt.Modal modal = new(absoluteY: 85, textBox);
+
                     menu.Add(button);
                     menu.Add(modal);
 
-                    Action onEnter = () => {
-                        Logger.Log(LogLevel.Info, "MayMay", "on Enter was called");
+                    Action searchNextMod = () => {
+                        updateHighlightedMods();
+
+                        int index = 0;
+                        int targetSelectionIndex = 0;
+                        patch_TextMenu.patch_Option<bool> targetTextMenuItem = null;
+                        string searchTarget = textBox.Text.ToLower();
+
+                        foreach (TextMenu.Item item in menu.GetItems()) {
+                            if (item.GetType() == typeof(TextMenu.OnOff) &&
+                                    modToggles.ContainsKey(((TextMenu.OnOff) item).Label) &&
+                                    ((TextMenu.OnOff) item).Label.ToLower().Contains(searchTarget)) {
+                                if (targetTextMenuItem == null) {
+                                    targetSelectionIndex = index;
+                                    targetTextMenuItem = (patch_TextMenu.patch_Option<bool>) (object) item;
+                                } else if (index > menu.Selection) {
+                                    targetSelectionIndex = index;
+                                    targetTextMenuItem = (patch_TextMenu.patch_Option<bool>) (object) item;
+                                    break;
+                                }
+                            }
+                            index++;
+                        }
+
+                        if (targetTextMenuItem != null) {
+                            menu.Selection = targetSelectionIndex;
+                            targetTextMenuItem.UnselectedColor = TextMenu.HighlightColorA;
+                        }
                     };
 
-                    textBox.InputCharActions['\n'] = onEnter;
-                    textBox.InputCharActions['\r'] = onEnter;
-                    
-                    textBox.GeneralKeysActions[Microsoft.Xna.Framework.Input.Keys.Escape] = () => {
-                        Logger.Log(LogLevel.Info, "MayMay", "on Escape was called");
-                        modal.Visible = false;
+                    Action exitSearch = () => {
                         textBox.StopTyping();
+                        modal.Visible = false;
+                        textBox.Clear();
+                        updateHighlightedMods();
                     };
+
+                    textBox.InputCharActions['\t'] = searchNextMod;
+
+                    textBox.InputCharActions['\n'] = exitSearch;
+                    textBox.InputCharActions['\r'] = exitSearch;
+                    // for some reason windows and linux behave differently with the escape button so we want to cover all the options
+                    textBox.InputCharActions[(char) 27] = exitSearch;
+                    textBox.GeneralKeysActions[Microsoft.Xna.Framework.Input.Keys.Escape] = exitSearch;
 
                     button.OnPressed += () => {
                         modal.Visible = true;
